@@ -4,6 +4,50 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Add event delegation for delete buttons
+  activitiesList.addEventListener('click', async (event) => {
+    const deleteBtn = event.target.closest('.delete-participant');
+    if (!deleteBtn) return;
+
+    const activity = deleteBtn.dataset.activity;
+    const email = deleteBtn.dataset.email;
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Refresh the activities list
+        await fetchActivities();
+        
+        messageDiv.textContent = result.message;
+        messageDiv.className = 'success';
+      } else {
+        messageDiv.textContent = result.detail || "An error occurred";
+        messageDiv.className = 'error';
+      }
+
+      messageDiv.classList.remove('hidden');
+
+      // Hide message after 5 seconds
+      setTimeout(() => {
+        messageDiv.classList.add('hidden');
+      }, 5000);
+
+    } catch (error) {
+      messageDiv.textContent = "Failed to unregister. Please try again.";
+      messageDiv.className = 'error';
+      messageDiv.classList.remove('hidden');
+      console.error("Error unregistering:", error);
+    }
+  });
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -28,7 +72,13 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="participants-list">
             <h5>Current Participants:</h5>
             ${details.participants.length > 0 
-              ? `<ul>${details.participants.map(email => `<li>${email}</li>`).join('')}</ul>`
+              ? `<ul>${details.participants.map(email => `
+                  <li>
+                    <span class="participant-email">${email}</span>
+                    <button class="delete-participant" data-activity="${name}" data-email="${email}">
+                      <span class="delete-icon">×</span>
+                    </button>
+                  </li>`).join('')}</ul>`
               : '<p class="no-participants">No participants yet</p>'
             }
           </div>
